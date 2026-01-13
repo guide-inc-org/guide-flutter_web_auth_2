@@ -25,7 +25,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdk = 36
+    compileSdk = 35
 
     if (project.android.hasProperty("namespace")) {
         namespace = 'com.linusu.flutter_web_auth_2'
