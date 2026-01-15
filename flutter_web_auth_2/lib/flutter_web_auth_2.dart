@@ -88,4 +88,15 @@ class FlutterWebAuth2 {
     await _platform.clearAllDanglingCalls();
     WidgetsBinding.instance.removeObserver(_resumedObserver);
   }
+
+  /// Cancel the current authentication session if one is active.
+  /// This will close the browser and clean up resources.
+  static Future<void> cancel() async {
+    if (Platform.isIOS) {
+      await _platform.cancel();
+    } else {
+      await _platform.clearAllDanglingCalls();
+    }
+    WidgetsBinding.instance.removeObserver(_resumedObserver);
+  }
 }

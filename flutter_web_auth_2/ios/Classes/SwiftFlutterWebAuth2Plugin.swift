@@ -12,6 +12,7 @@ public class SwiftFlutterWebAuth2Plugin: NSObject, FlutterPlugin {
     }
 
     var completionHandler: ((URL?, Error?) -> Void)?
+    var currentSession: Any?
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if call.method == "authenticate",
@@ -24,6 +25,7 @@ public class SwiftFlutterWebAuth2Plugin: NSObject, FlutterPlugin {
             var sessionToKeepAlive: Any? // if we do not keep the session alive, it will get closed immediately while showing the dialog
             completionHandler = { (url: URL?, err: Error?) in
                 self.completionHandler = nil
+                self.currentSession = nil
 
                 if (sessionToKeepAlive != nil) {
                     if #available(iOS 12, *) {
@@ -102,13 +104,26 @@ public class SwiftFlutterWebAuth2Plugin: NSObject, FlutterPlugin {
 
                 session.start()
                 sessionToKeepAlive = session
+                currentSession = session
             } else if #available(iOS 11, *) {
                 let session = SFAuthenticationSession(url: url, callbackURLScheme: callbackURLScheme, completionHandler: completionHandler!)
                 session.start()
                 sessionToKeepAlive = session
+                currentSession = session
             } else {
                 result(FlutterError(code: "FAILED", message: "This plugin does currently not support iOS lower than iOS 11", details: nil))
             }
+        } else if call.method == "cancel" {
+            if currentSession != nil {
+                if let handler = completionHandler {
+                    if #available(iOS 12, *) {
+                        handler(nil, ASWebAuthenticationSessionError(.canceledLogin))
+                    } else if #available(iOS 11, *) {
+                        handler(nil, SFAuthenticationError(.canceledLogin))
+                    }
+                }
+            }
+            result(nil)
         } else if call.method == "cleanUpDanglingCalls" {
             // we do not keep track of old callbacks on iOS, so nothing to do here
             result(nil)
