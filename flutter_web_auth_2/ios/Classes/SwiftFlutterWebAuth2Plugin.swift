@@ -121,6 +121,10 @@ public class SwiftFlutterWebAuth2Plugin: NSObject, FlutterPlugin {
                     } else if #available(iOS 11, *) {
                         handler(nil, SFAuthenticationError(.canceledLogin))
                     }
+                    self.waitForDismiss {
+                        result(nil)
+                    }
+                    return
                 }
             }
             result(nil)
@@ -129,6 +133,43 @@ public class SwiftFlutterWebAuth2Plugin: NSObject, FlutterPlugin {
             result(nil)
         } else {
             result(FlutterMethodNotImplemented)
+        }
+    }
+    
+    private func waitForDismiss(timeout: TimeInterval = 2.0, startTime: Date? = nil, completion: @escaping () -> Void) {
+        let start = startTime ?? Date()
+        let elapsed = Date().timeIntervalSince(start)
+      
+        // Check timeout
+        if elapsed >= timeout {
+            completion()
+            return
+        }
+        
+        var rootViewController: UIViewController? = nil
+        
+        if #available(iOS 13, *) {
+            rootViewController = UIApplication.shared.delegate?.window??.rootViewController
+            if rootViewController == nil {
+                rootViewController = UIApplication.shared.keyWindow?.rootViewController
+            }
+        } else {
+            rootViewController = UIApplication.shared.keyWindow?.rootViewController
+        }
+        
+        guard let rootVC = rootViewController else {
+            completion()
+            return
+        }
+        
+        if let presentedVC = rootVC.presentedViewController {
+            // Not dismissed yet, check again on next run loop
+            DispatchQueue.main.async { [weak self] in
+                self?.waitForDismiss(timeout: timeout, startTime: start, completion: completion)
+            }
+        } else {
+            // UI dismissed successfully
+            completion()
         }
     }
 
