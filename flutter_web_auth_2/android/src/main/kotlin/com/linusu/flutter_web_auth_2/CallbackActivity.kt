@@ -12,7 +12,12 @@ class CallbackActivity: Activity() {
     val scheme = url?.scheme
 
     if (scheme != null) {
-      FlutterWebAuth2Plugin.callbacks.remove(scheme)?.success(url.toString())
+      val callback = FlutterWebAuth2Plugin.callbacks.remove(scheme)
+      if (callback != null) {
+        // Remove all other entries with the same callback to prevent duplicate calls
+        FlutterWebAuth2Plugin.callbacks.entries.removeIf { it.value == callback }
+        callback.success(url.toString())
+      }
     }
 
     finish()

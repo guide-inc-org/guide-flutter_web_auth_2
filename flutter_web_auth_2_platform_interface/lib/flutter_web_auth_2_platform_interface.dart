@@ -40,3 +40,4 @@ abstract class FlutterWebAuth2Platform extends PlatformInterface {
   /// Cancel the current authentication session if one is active.
   Future cancel() => _instance.cancel();
 }
+

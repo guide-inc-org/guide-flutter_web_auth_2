@@ -47,8 +47,13 @@ class FlutterWebAuth2Plugin(private var context: Context? = null, private var ch
           val url = Uri.parse(call.argument("url"))
           val callbackUrlScheme = call.argument<String>("callbackUrlScheme")!!
           val options = call.argument<Map<String, Any>>("options")!!
+          val callbackUrlKey = options["callbackUrlKey"] as? String
 
+          // Register callback for both keys so either callback path works
           callbacks[callbackUrlScheme] = resultCallback
+          if (callbackUrlKey != null && callbackUrlKey != callbackUrlScheme) {
+              callbacks[callbackUrlKey] = resultCallback
+          }
 
           val intent = CustomTabsIntent.Builder().build()
           val keepAliveIntent = Intent(context, KeepAliveService::class.java)
@@ -59,8 +64,12 @@ class FlutterWebAuth2Plugin(private var context: Context? = null, private var ch
           intent.launchUrl(context!!, url)
         }
         "cleanUpDanglingCalls" -> {
-          callbacks.forEach{ (_, danglingResultCallback) ->
-              danglingResultCallback.error("CANCELED", "User canceled login", null)
+          // Use IdentityHashMap to track processed Results (by reference, not equals())
+          val processedResults = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Result, Boolean>())
+          callbacks.values.forEach { danglingResultCallback ->
+              if (processedResults.add(danglingResultCallback)) {
+                  danglingResultCallback.error("CANCELED", "User canceled login", null)
+              }
           }
           callbacks.clear()
           resultCallback.success(null)

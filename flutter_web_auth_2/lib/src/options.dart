@@ -96,6 +96,11 @@ class FlutterWebAuth2Options {
   /// MALICIOUS ATTACKERS!
   final bool silentAuth;
 
+  /// Can be used to specify a custom key for the callback URL.
+  /// This is useful for handling deeplinks where you need to identify
+  /// the callback URL by a specific key in later processing.
+  final String? callbackUrlKey;
+
   const FlutterWebAuth2Options({
     bool? preferEphemeral,
     this.debugOrigin,
@@ -104,6 +109,7 @@ class FlutterWebAuth2Options {
     int? timeout,
     String? landingPageHtml,
     bool? silentAuth,
+    this.callbackUrlKey,
   })  : preferEphemeral = preferEphemeral ?? false,
         intentFlags = intentFlags ?? defaultIntentFlags,
         timeout = timeout ?? 5 * 60,
@@ -119,6 +125,7 @@ class FlutterWebAuth2Options {
           timeout: json['timeout'],
           landingPageHtml: json['landingPageHtml'],
           silentAuth: json['silentAuth'],
+          callbackUrlKey: json['callbackUrlKey'],
         );
 
   Map<String, dynamic> toJson() => {
@@ -129,5 +136,6 @@ class FlutterWebAuth2Options {
         'timeout': timeout,
         'landingPageHtml': landingPageHtml,
         'silentAuth': silentAuth,
+        'callbackUrlKey': callbackUrlKey,
       };
 }
