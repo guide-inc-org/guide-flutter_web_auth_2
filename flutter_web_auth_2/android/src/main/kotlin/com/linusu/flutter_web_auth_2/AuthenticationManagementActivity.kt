@@ -8,9 +8,10 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
-import androidx.browser.auth.AuthTabIntent
-import androidx.browser.auth.AuthTabIntent.AuthResult
+// TODO: Uncomment when using browser 1.9.0+
+// import androidx.activity.result.ActivityResultLauncher
+// import androidx.browser.auth.AuthTabIntent
+// import androidx.browser.auth.AuthTabIntent.AuthResult
 import androidx.browser.customtabs.CustomTabsIntent
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
@@ -41,13 +42,15 @@ class AuthenticationManagementActivity : ComponentActivity() {
     private var callbackHost: String? = null
     private var callbackPath: String? = null
 
-    private lateinit var authLauncher: ActivityResultLauncher<Intent>
+    // TODO: Uncomment when using browser 1.9.0+
+    // private lateinit var authLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // TODO: Uncomment when using browser 1.9.0+
         // Register the activity result launcher
-        authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
+        // authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
 
         if (savedInstanceState == null) {
             extractState(intent.extras)
@@ -56,66 +59,48 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
-    private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
-        if (callback == null) {
-            finish()
-            return
-        }
-
-        when (result.resultCode) {
-            AuthTabIntent.RESULT_OK -> {
-                callback.success(result.resultUri!!.toString())
-            }
-
-            AuthTabIntent.RESULT_CANCELED -> {
-                callback.error("CANCELED", "User canceled authentication", null)
-            }
-
-            else -> {
-                callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
-            }
-        }
-
-        FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
-        finish()
-    }
+    // TODO: Uncomment when using browser 1.9.0+
+    // private fun handleAuthResult(result: AuthResult) {
+    //     val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+    //     if (callback == null) {
+    //         finish()
+    //         return
+    //     }
+    //
+    //     when (result.resultCode) {
+    //         AuthTabIntent.RESULT_OK -> {
+    //             callback.success(result.resultUri!!.toString())
+    //         }
+    //
+    //         AuthTabIntent.RESULT_CANCELED -> {
+    //             callback.error("CANCELED", "User canceled authentication", null)
+    //         }
+    //
+    //         else -> {
+    //             callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
+    //         }
+    //     }
+    //
+    //     FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
+    //     finish()
+    // }
 
     override fun onResume() {
         super.onResume()
 
         if (!authStarted) {
+            // Always use CustomTabsIntent (legacy) for browser 1.8.0
+            Log.d(LOG_TAG, "Using CustomTabsIntent (legacy mode)")
+            val intentBuilder = CustomTabsIntent.Builder()
 
-            val intentBuilder = if (shouldUseLegacySystem()) {
-                Log.d(LOG_TAG, "Using CustomTabsIntent")
-                CtBuilderWrapper(CustomTabsIntent.Builder())
-            } else {
-                Log.d(LOG_TAG, "Using AuthTabIntent")
-                AuthTabBuilderWrapper(AuthTabIntent.Builder())
+            val customTabsIntent = intentBuilder.build()
+
+            customTabsIntent.intent.addFlags(intentFlags)
+            if (targetPackage.isNotEmpty()) {
+                customTabsIntent.intent.setPackage(targetPackage)
             }
 
-            // Set ephemeral browsing if requested and supported
-            if (preferEphemeral) {
-                try {
-                    intentBuilder.setEphemeralBrowsingEnabled(true)
-                    Log.d(LOG_TAG, "Ephemeral browsing enabled")
-                } catch (e: Exception) {
-                    Log.w(LOG_TAG, "Failed to enable ephemeral browsing: ${e.message}")
-                }
-            }
-
-            val intent = intentBuilder.build()
-
-            intent.intent.addFlags(intentFlags)
-            intent.intent.setPackage(targetPackage)
-
-            if (callbackScheme == "https" && callbackHost != null && callbackPath != null) {
-                Log.d(LOG_TAG, "Using https host and path: $callbackHost, $callbackPath")
-                intent.launch(this, authLauncher, authenticationUri, callbackHost!!, callbackPath!!)
-            } else {
-                Log.d(LOG_TAG, "Using custom scheme: $callbackScheme")
-                intent.launch(this, authLauncher, authenticationUri, callbackScheme)
-            }
+            customTabsIntent.launchUrl(this, authenticationUri)
 
             authStarted = true
             return
@@ -127,30 +112,31 @@ class AuthenticationManagementActivity : ComponentActivity() {
         finish()
     }
 
-    fun shouldUseLegacySystem(): Boolean {
-
-        if (!preferEphemeral) return false
-        val packageMajorVersion = getInstalledVersion(targetPackage)?.substringBefore(".")?.toIntOrNull() ?: 0
-        Log.d(LOG_TAG, "Chosen package: $targetPackage with version: $packageMajorVersion")
-
-        val chromePackages = setOf(
-            PackageNames.CHROME_STABLE,
-            PackageNames.CHROME_BETA,
-            PackageNames.CHROME_DEV,
-        )
-
-        if (chromePackages.contains(targetPackage)) {
-            return packageMajorVersion < 141
-        } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
-            return packageMajorVersion < 141
-        } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
-            return packageMajorVersion < 28
-        } else if (targetPackage == PackageNames.FIREFOX) {
-            return packageMajorVersion < 143
-        }
-
-        return false
-    }
+    // TODO: Uncomment when using browser 1.9.0+
+    // fun shouldUseLegacySystem(): Boolean {
+    //
+    //     if (!preferEphemeral) return false
+    //     val packageMajorVersion = getInstalledVersion(targetPackage)?.substringBefore(".")?.toIntOrNull() ?: 0
+    //     Log.d(LOG_TAG, "Chosen package: $targetPackage with version: $packageMajorVersion")
+    //
+    //     val chromePackages = setOf(
+    //         PackageNames.CHROME_STABLE,
+    //         PackageNames.CHROME_BETA,
+    //         PackageNames.CHROME_DEV,
+    //     )
+    //
+    //     if (chromePackages.contains(targetPackage)) {
+    //         return packageMajorVersion < 141
+    //     } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
+    //         return packageMajorVersion < 141
+    //     } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
+    //         return packageMajorVersion < 28
+    //     } else if (targetPackage == PackageNames.FIREFOX) {
+    //         return packageMajorVersion < 143
+    //     }
+    //
+    //     return false
+    // }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

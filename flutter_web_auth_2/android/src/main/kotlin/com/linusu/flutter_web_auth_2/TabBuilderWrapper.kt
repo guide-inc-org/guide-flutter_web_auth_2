@@ -1,5 +1,9 @@
 package com.linusu.flutter_web_auth_2
 
+// TODO: This file is for browser 1.9.0+ with AuthTabIntent support
+// Currently disabled for browser 1.8.0 compatibility
+
+/*
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
@@ -21,7 +25,9 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
+        b.setEphemeralBrowsingEnabled(enabled)
+    }
 
     override fun build(): IntentWrapper {
         val intent = b.build()
@@ -63,3 +69,4 @@ class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWr
         }
     }
 }
+*/
