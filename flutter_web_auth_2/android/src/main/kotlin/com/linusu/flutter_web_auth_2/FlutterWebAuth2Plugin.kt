@@ -45,22 +45,35 @@ class FlutterWebAuth2Plugin(
                 val url = Uri.parse(call.argument("url"))
                 val callbackUrlScheme: String = call.argument<String>("callbackUrlScheme")!!
                 val options = call.argument<Map<String, Any>>("options")!!
+                val callbackPath = options["httpsPath"] as? String
 
+                // Register callback for both keys so either callback path works
                 callbacks[callbackUrlScheme] = resultCallback
+                if (callbackPath != null && callbackPath != callbackUrlScheme) {
+                    callbacks[callbackPath] = resultCallback
+                }
+
                 activity?.startActivity(Intent(activity, AuthenticationManagementActivity::class.java).apply {
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_URI, url)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_INTENT_FLAGS, options["intentFlags"] as Int)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TARGET_PACKAGE, findTargetBrowserPackageName(options))
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_SCHEME, callbackUrlScheme)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_HOST, options["httpsHost"] as String?)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, options["httpsPath"] as String?)
+                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, callbackPath)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_PREFER_EPHEMERAL, options["preferEphemeral"] as Boolean? ?: false)
                 })
             }
 
             "cleanUpDanglingCalls" -> {
-                callbacks.forEach { (_, danglingResultCallback) ->
-                    danglingResultCallback.error("CANCELED", "User canceled login", null)
+                // Use IdentityHashMap to track processed Result instances by reference.
+                // The same Result callback may be registered under multiple keys
+                // (e.g., both callbackUrlScheme and callbackPath), so we must ensure
+                // .error() is only called once per unique Result instance.
+                val processedResults = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Result, Boolean>())
+                callbacks.values.forEach { danglingResultCallback ->
+                    if (processedResults.add(danglingResultCallback)) {
+                        danglingResultCallback.error("CANCELED", "User canceled login", null)
+                    }
                 }
                 callbacks.clear()
                 resultCallback.success(null)
@@ -93,9 +106,9 @@ class FlutterWebAuth2Plugin(
      * 1. Custom Browser Order (if supported)
      * 2. default Browser
      * 3. Installed Browsers (if supported)
-     * 4. null (System backup aka. some obscure browser that may work)
+     * 4. Chrome (last fallback)
      */
-    private fun findTargetBrowserPackageName(options: Map<String, Any>): String? {
+    private fun findTargetBrowserPackageName(options: Map<String, Any>): String {
         val context = requireNotNull(context) { "Context is null" }
 
         val selectedPackage = (options["customTabsPackageOrder"] as? Iterable<*>)
@@ -115,9 +128,8 @@ class FlutterWebAuth2Plugin(
         // Check installed browser
         val matchedBrowser = getInstalledBrowsers().firstOrNull { isSupportCustomTabs(it) }
 
-        // Don't fall back to Chrome here. It is not installed anyway because it would already be in matchedBrowser.
-        // Instead, fall back to null so we can use the system backup (if one is available).
-        return matchedBrowser
+        // Safely fall back on Chrome just in case
+        return matchedBrowser ?: PackageNames.CHROME_STABLE
     }
 
     private fun getInstalledBrowsers(): List<String> {
