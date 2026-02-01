@@ -21,19 +21,23 @@ topics:
   - web
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
-  flutter: ">=3.24.0"
+  sdk: ">=3.3.4 <4.0.0"
+  flutter: ">=3.19.6"
 
 dependencies:
   desktop_webview_window: ^0.2.3
   flutter:
     sdk: flutter
-  flutter_web_auth_2_platform_interface: ^5.0.0
+  flutter_web_auth_2_platform_interface:
+    git:
+      url: https://github.com/guide-inc-org/guide-flutter_web_auth_2.git
+      ref: kcsta/v.5.0.1+1
+      path: flutter_web_auth_2_platform_interface
   flutter_web_plugins:
     sdk: flutter
   path_provider: ^2.1.2
   url_launcher: ^6.1.6
-  web: ">=0.5.0 <2.0.0"
+  web: ">=0.3.0 <2.0.0"
   window_to_front: ^0.0.3
 
 dev_dependencies:
