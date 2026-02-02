@@ -8,9 +8,10 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
-import androidx.browser.auth.AuthTabIntent
-import androidx.browser.auth.AuthTabIntent.AuthResult
+// TODO: Uncomment when using browser 1.9.0+
+// import androidx.activity.result.ActivityResultLauncher
+// import androidx.browser.auth.AuthTabIntent
+// import androidx.browser.auth.AuthTabIntent.AuthResult
 import androidx.browser.customtabs.CustomTabsIntent
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
@@ -35,19 +36,21 @@ class AuthenticationManagementActivity : ComponentActivity() {
     private var authStarted: Boolean = false
     private lateinit var authenticationUri: Uri
     private var intentFlags: Int = 0
-    private var targetPackage: String? = null
+    private lateinit var targetPackage: String
     private var preferEphemeral: Boolean = false
     private lateinit var callbackScheme: String
     private var callbackHost: String? = null
     private var callbackPath: String? = null
 
-    private lateinit var authLauncher: ActivityResultLauncher<Intent>
+    // TODO: Uncomment when using browser 1.9.0+
+    // private lateinit var authLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // TODO: Uncomment when using browser 1.9.0+
         // Register the activity result launcher
-        authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
+        // authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
 
         if (savedInstanceState == null) {
             extractState(intent.extras)
@@ -56,111 +59,83 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
-    private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
-        if (callback == null) {
-            finish()
-            return
-        }
-
-        when (result.resultCode) {
-            AuthTabIntent.RESULT_OK -> {
-                callback.success(result.resultUri!!.toString())
-            }
-
-            AuthTabIntent.RESULT_CANCELED -> {
-                callback.error("CANCELED", "User canceled authentication", null)
-            }
-
-            else -> {
-                callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
-            }
-        }
-
-        FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
-        finish()
-    }
+    // TODO: Uncomment when using browser 1.9.0+
+    // private fun handleAuthResult(result: AuthResult) {
+    //     val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+    //     if (callback == null) {
+    //         finish()
+    //         return
+    //     }
+    //
+    //     when (result.resultCode) {
+    //         AuthTabIntent.RESULT_OK -> {
+    //             callback.success(result.resultUri!!.toString())
+    //         }
+    //
+    //         AuthTabIntent.RESULT_CANCELED -> {
+    //             callback.error("CANCELED", "User canceled authentication", null)
+    //         }
+    //
+    //         else -> {
+    //             callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
+    //         }
+    //     }
+    //
+    //     FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
+    //     finish()
+    // }
 
     override fun onResume() {
         super.onResume()
 
         if (!authStarted) {
+            // Always use CustomTabsIntent (legacy) for browser 1.8.0
+            Log.d(LOG_TAG, "Using CustomTabsIntent (legacy mode)")
+            val intentBuilder = CustomTabsIntent.Builder()
 
-            val intentBuilder = if (shouldUseAuthTabs()) {
-                Log.d(LOG_TAG, "Using AuthTabIntent")
-                AuthTabBuilderWrapper(AuthTabIntent.Builder())
-            } else {
-                Log.d(LOG_TAG, "Using CustomTabsIntent")
-                CtBuilderWrapper(CustomTabsIntent.Builder())
+            val customTabsIntent = intentBuilder.build()
+
+            customTabsIntent.intent.addFlags(intentFlags)
+            if (targetPackage.isNotEmpty()) {
+                customTabsIntent.intent.setPackage(targetPackage)
             }
 
-            // Set ephemeral browsing if requested and supported
-            if (preferEphemeral) {
-                try {
-                    intentBuilder.setEphemeralBrowsingEnabled(true)
-                    Log.d(LOG_TAG, "Ephemeral browsing enabled")
-                } catch (e: Exception) {
-                    Log.w(LOG_TAG, "Failed to enable ephemeral browsing: ${e.message}")
-                }
-            }
-
-            val intent = intentBuilder.build()
-
-            intent.intent.addFlags(intentFlags)
-            if (targetPackage != null) {
-                intent.intent.setPackage(targetPackage)
-            }
-
-            try {
-                if (callbackScheme == "https" && callbackHost != null && callbackPath != null) {
-                    Log.d(LOG_TAG, "Using https host and path: $callbackHost, $callbackPath")
-                    intent.launch(this, authLauncher, authenticationUri, callbackHost!!, callbackPath!!)
-                } else {
-                    Log.d(LOG_TAG, "Using custom scheme: $callbackScheme")
-                    intent.launch(this, authLauncher, authenticationUri, callbackScheme)
-                }
-            } catch (e: android.content.ActivityNotFoundException){
-                Log.e(LOG_TAG, "Failed to start authentication. No browser available (Activity not found)")
-                val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
-                callback?.error("NO_BROWSER", "No valid browser available for authentication.", e.message)
-                FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
-                finish()
-            }
+            customTabsIntent.launchUrl(this, authenticationUri)
 
             authStarted = true
             return
-        }
-        /* If the authentication was already started and we've returned here, the user either
+        }/* If the authentication was already started and we've returned here, the user either
          * completed or cancelled authentication.
          * Either way we want to return to our original flutter activity, so just finish here
          */
         finish()
     }
 
-    fun shouldUseAuthTabs(): Boolean {
-
-        if (!preferEphemeral || targetPackage == null) return true
-        val packageMajorVersion = getInstalledVersion(targetPackage!!)?.substringBefore(".")?.toIntOrNull() ?: 0
-        Log.d(LOG_TAG, "Chosen package: $targetPackage with version: $packageMajorVersion")
-
-        val chromePackages = setOf(
-            PackageNames.CHROME_STABLE,
-            PackageNames.CHROME_BETA,
-            PackageNames.CHROME_DEV,
-        )
-
-        if (chromePackages.contains(targetPackage)) {
-            return packageMajorVersion >= 141
-        } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
-            return packageMajorVersion >= 141
-        } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
-            return packageMajorVersion >= 28
-        } else if (targetPackage == PackageNames.FIREFOX) {
-            return packageMajorVersion >= 143
-        }
-
-        return true
-    }
+    // TODO: Uncomment when using browser 1.9.0+
+    // fun shouldUseLegacySystem(): Boolean {
+    //
+    //     if (!preferEphemeral) return false
+    //     val packageMajorVersion = getInstalledVersion(targetPackage)?.substringBefore(".")?.toIntOrNull() ?: 0
+    //     Log.d(LOG_TAG, "Chosen package: $targetPackage with version: $packageMajorVersion")
+    //
+    //     val chromePackages = setOf(
+    //         PackageNames.CHROME_STABLE,
+    //         PackageNames.CHROME_BETA,
+    //         PackageNames.CHROME_DEV,
+    //     )
+    //
+    //     if (chromePackages.contains(targetPackage)) {
+    //         return packageMajorVersion < 141
+    //     } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
+    //         return packageMajorVersion < 141
+    //     } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
+    //         return packageMajorVersion < 28
+    //     } else if (targetPackage == PackageNames.FIREFOX) {
+    //         return packageMajorVersion < 143
+    //     }
+    //
+    //     return false
+    // }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -183,11 +158,10 @@ class AuthenticationManagementActivity : ComponentActivity() {
         authenticationUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             state.getParcelable(KEY_AUTH_URI, Uri::class.java)
         } else {
-            @Suppress("deprecation")
-            state.getParcelable(KEY_AUTH_URI)
+            @Suppress("deprecation") state.getParcelable(KEY_AUTH_URI)
         } ?: throw IllegalStateException("Authentication URI is null")
         intentFlags = state.getInt(KEY_AUTH_OPTION_INTENT_FLAGS, 0)
-        targetPackage = state.getString(KEY_AUTH_OPTION_TARGET_PACKAGE)
+        targetPackage = state.getString(KEY_AUTH_OPTION_TARGET_PACKAGE)!!
         preferEphemeral = state.getBoolean(KEY_AUTH_OPTION_PREFER_EPHEMERAL, false)
         callbackScheme = state.getString(KEY_AUTH_CALLBACK_SCHEME)!!
         callbackHost = state.getString(KEY_AUTH_CALLBACK_HOST)
