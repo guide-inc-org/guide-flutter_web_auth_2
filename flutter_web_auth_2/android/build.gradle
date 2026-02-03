@@ -2,14 +2,14 @@ group = 'com.linusu.flutter_web_auth_2'
 version = '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '2.1.0'
+    ext.kotlin_version = '1.7.20'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:8.1.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -25,19 +25,19 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdk = 36
+    compileSdk = 35
 
     if (project.android.hasProperty("namespace")) {
         namespace = 'com.linusu.flutter_web_auth_2'
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = 11
+        jvmTarget = 17
     }
 
     sourceSets {
@@ -49,8 +49,8 @@ android {
     }
 
     dependencies {
-        implementation 'androidx.browser:browser:1.9.0'
-        implementation 'androidx.activity:activity-ktx:1.10.1'
+        implementation 'androidx.browser:browser:1.8.0'
+        implementation 'androidx.activity:activity-ktx:1.8.2'
         implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     }
 }
