@@ -60,7 +60,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
     /*
     private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+        val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
         if (callback == null) {
             finish()
             return
@@ -80,7 +80,6 @@ class AuthenticationManagementActivity : ComponentActivity() {
             }
         }
 
-        FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
         finish()
     }
     */
@@ -131,9 +130,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 }
             } catch (e: android.content.ActivityNotFoundException){
                 Log.e(LOG_TAG, "Failed to start authentication. No browser available (Activity not found)")
-                val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+                val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
                 callback?.error("NO_BROWSER", "No valid browser available for authentication.", e.message)
-                FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
                 finish()
             }
 

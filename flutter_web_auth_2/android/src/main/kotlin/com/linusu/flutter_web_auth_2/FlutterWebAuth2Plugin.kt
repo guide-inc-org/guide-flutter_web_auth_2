@@ -22,6 +22,19 @@ class FlutterWebAuth2Plugin(
 ) : MethodCallHandler, FlutterPlugin, ActivityAware {
     companion object {
         val callbacks = mutableMapOf<String, Result>()
+
+        fun removeCallback(key: String): Result? {
+            val callback = callbacks.remove(key)
+            if (callback != null) {
+                // Remove all other entries with the same callback to prevent duplicate calls
+                callbacks
+                    .filterValues { it == callback }
+                    .keys
+                    .toList()
+                    .forEach { callbacks.remove(it) }
+            }
+            return callback
+        }
     }
 
     private fun initInstance(messenger: BinaryMessenger, context: Context) {
