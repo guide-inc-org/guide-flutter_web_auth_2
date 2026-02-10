@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -91,6 +92,17 @@ class FlutterWebAuth2 {
   /// terminate all `authenticate` calls with an error.
   static Future<void> _cleanUpDanglingCalls() async {
     await _platform.clearAllDanglingCalls();
+    WidgetsBinding.instance.removeObserver(_resumedObserver);
+  }
+
+  /// Cancel the current authentication session if one is active.
+  /// This will close the browser and clean up resources.
+  static Future<void> cancel() async {
+    if (Platform.isIOS) {
+      await _platform.cancel();
+    } else {
+      await _platform.clearAllDanglingCalls();
+    }
     WidgetsBinding.instance.removeObserver(_resumedObserver);
   }
 }
