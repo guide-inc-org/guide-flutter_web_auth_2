@@ -9,8 +9,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
-import androidx.browser.auth.AuthTabIntent
-import androidx.browser.auth.AuthTabIntent.AuthResult
+// import androidx.browser.auth.AuthTabIntent
+// import androidx.browser.auth.AuthTabIntent.AuthResult
 import androidx.browser.customtabs.CustomTabsIntent
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
@@ -46,8 +46,10 @@ class AuthenticationManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Register the activity result launcher
-        authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
+        // Register the activity result launcher - using standard activity result
+        authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+            // Handle result in onNewIntent or onResume
+        }
 
         if (savedInstanceState == null) {
             extractState(intent.extras)
@@ -56,8 +58,9 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
+    /*
     private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+        val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
         if (callback == null) {
             finish()
             return
@@ -77,15 +80,20 @@ class AuthenticationManagementActivity : ComponentActivity() {
             }
         }
 
-        FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
         finish()
     }
+    */
 
     override fun onResume() {
         super.onResume()
 
         if (!authStarted) {
 
+            // Always use CustomTabsIntent for SDK 35 compatibility
+            val intentBuilder = CtBuilderWrapper(CustomTabsIntent.Builder())
+            Log.d(LOG_TAG, "Using CustomTabsIntent")
+            
+            /*
             val intentBuilder = if (shouldUseAuthTabs()) {
                 Log.d(LOG_TAG, "Using AuthTabIntent")
                 AuthTabBuilderWrapper(AuthTabIntent.Builder())
@@ -93,6 +101,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 Log.d(LOG_TAG, "Using CustomTabsIntent")
                 CtBuilderWrapper(CustomTabsIntent.Builder())
             }
+            */
 
             // Set ephemeral browsing if requested and supported
             if (preferEphemeral) {
@@ -121,9 +130,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 }
             } catch (e: android.content.ActivityNotFoundException){
                 Log.e(LOG_TAG, "Failed to start authentication. No browser available (Activity not found)")
-                val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+                val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
                 callback?.error("NO_BROWSER", "No valid browser available for authentication.", e.message)
-                FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
                 finish()
             }
 
