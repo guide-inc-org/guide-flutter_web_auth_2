@@ -61,6 +61,7 @@ class FlutterWebAuth2Options {
     this.httpsHost,
     this.httpsPath,
     this.customTabsPackageOrder,
+    this.toolbarColor,
   })  : preferEphemeral = preferEphemeral ?? false,
         intentFlags = intentFlags ?? defaultIntentFlags,
         timeout = timeout ?? 5 * 60,
@@ -82,6 +83,7 @@ class FlutterWebAuth2Options {
           httpsHost: json['httpsHost'],
           httpsPath: json['httpsPath'],
           customTabsPackageOrder: json['customTabsPackageOrder'],
+          toolbarColor: json['toolbarColor'],
         );
 
   /// **Only has an effect on iOS, Android and macOS!**
@@ -166,6 +168,11 @@ class FlutterWebAuth2Options {
   /// is tested etc.
   final List<String>? customTabsPackageOrder;
 
+  /// **Only has an effect on Android!**
+  /// Sets the toolbar and navigation bar color for the Custom Tabs.
+  /// The value should be an ARGB color integer (e.g., 0xFF1B212C).
+  final int? toolbarColor;
+
   /// Convert this instance to JSON format.
   Map<String, dynamic> toJson() => {
         'preferEphemeral': preferEphemeral,
@@ -179,5 +186,6 @@ class FlutterWebAuth2Options {
         'customTabsPackageOrder': customTabsPackageOrder,
         'httpsHost': httpsHost,
         'httpsPath': httpsPath,
+        'toolbarColor': toolbarColor,
       };
 }

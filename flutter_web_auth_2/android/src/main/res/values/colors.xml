@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default toolbar color for Custom Tabs (dark theme) -->
+    <color name="toolbarColor">#1B212C</color>
+</resources>

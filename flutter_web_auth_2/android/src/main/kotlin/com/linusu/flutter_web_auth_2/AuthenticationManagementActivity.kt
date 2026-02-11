@@ -24,6 +24,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         const val KEY_AUTH_CALLBACK_SCHEME: String = "authCallbackScheme"
         const val KEY_AUTH_CALLBACK_HOST: String = "authCallbackHost"
         const val KEY_AUTH_CALLBACK_PATH: String = "authCallbackPath"
+        const val KEY_AUTH_OPTION_TOOLBAR_COLOR: String = "authOptionsToolbarColor"
 
         fun createResponseHandlingIntent(context: Context): Intent {
             val intent = Intent(context, AuthenticationManagementActivity::class.java)
@@ -40,6 +41,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
     private lateinit var callbackScheme: String
     private var callbackHost: String? = null
     private var callbackPath: String? = null
+    private var toolbarColor: Int? = null
 
     private lateinit var authLauncher: ActivityResultLauncher<Intent>
 
@@ -91,7 +93,11 @@ class AuthenticationManagementActivity : ComponentActivity() {
         if (!authStarted) {
 
             // Always use CustomTabsIntent for SDK 35 compatibility
-            val intentBuilder = CtBuilderWrapper(CustomTabsIntent.Builder())
+            val intentBuilder = CtBuilderWrapper(
+                CustomTabsIntent.Builder(),
+                this,
+                toolbarColor
+            )
             Log.d(LOG_TAG, "Using CustomTabsIntent")
             
             /*
@@ -182,6 +188,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         outState.putString(KEY_AUTH_CALLBACK_SCHEME, callbackScheme)
         outState.putString(KEY_AUTH_CALLBACK_HOST, callbackHost)
         outState.putString(KEY_AUTH_CALLBACK_PATH, callbackPath)
+        toolbarColor?.let { outState.putInt(KEY_AUTH_OPTION_TOOLBAR_COLOR, it) }
     }
 
     private fun extractState(state: Bundle?) {
@@ -202,5 +209,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
         callbackScheme = state.getString(KEY_AUTH_CALLBACK_SCHEME)!!
         callbackHost = state.getString(KEY_AUTH_CALLBACK_HOST)
         callbackPath = state.getString(KEY_AUTH_CALLBACK_PATH)
+        toolbarColor = if (state.containsKey(KEY_AUTH_OPTION_TOOLBAR_COLOR)) {
+            state.getInt(KEY_AUTH_OPTION_TOOLBAR_COLOR)
+        } else null
     }
 }
