@@ -113,7 +113,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 }
             }
 
-            val intent = intentBuilder.build()
+            val intent = intentBuilder.build(this)
 
             intent.intent.addFlags(intentFlags)
             if (targetPackage != null) {
