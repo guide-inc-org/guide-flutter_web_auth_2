@@ -35,6 +35,7 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
             .build()
 
         b.setDefaultColorSchemeParams(colorSchemeParams)
+            .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
             .setStartAnimations(activity, R.anim.slide_in_bottom, R.anim.fade_out)
             .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
 
