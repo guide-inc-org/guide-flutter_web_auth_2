@@ -6,8 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.browser.customtabs.CustomTabColorSchemeParams
-// import androidx.browser.auth.AuthTabIntent
+import androidx.browser.auth.AuthTabColorSchemeParams
+import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 
 interface TabBuilderWrapper {
@@ -23,9 +25,8 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { 
-        // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-        // b.setEphemeralBrowsingEnabled(enabled) 
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
+        b.setEphemeralBrowsingEnabled(enabled)
     }
 
     override fun build(activity: Activity): IntentWrapper {
@@ -56,27 +57,47 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
     }
 }
 
-/*
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
 
     override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
 
     override fun build(activity: Activity): IntentWrapper {
+        val colorSchemeParams = AuthTabColorSchemeParams.Builder()
+            .setToolbarColor(ContextCompat.getColor(activity, R.color.toolbarColor))
+            .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
+            .build()
+
+        b.setDefaultColorSchemeParams(colorSchemeParams)
+
         val intent = b.build()
         return object : IntentWrapper {
 
             override val intent: Intent
                 get() = intent.intent
 
+            private fun animatedLauncher(launcher: ActivityResultLauncher<Intent>): ActivityResultLauncher<Intent> {
+                return object : ActivityResultLauncher<Intent>() {
+                    override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                        val animOptions = ActivityOptionsCompat.makeCustomAnimation(
+                            activity,
+                            R.anim.slide_in_bottom,
+                            R.anim.fade_out
+                        )
+                        launcher.launch(input, animOptions)
+                    }
+                    override val contract get() = launcher.contract
+                    override fun unregister() = launcher.unregister()
+                }
+            }
+
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launch(launcher, url, redirectHost, redirectPath)
+                intent.launch(animatedLauncher(launcher), url, redirectHost, redirectPath)
             }
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launch(launcher, url, redirectScheme)
+                intent.launch(animatedLauncher(launcher), url, redirectScheme)
             }
         }
     }
 }
-*/

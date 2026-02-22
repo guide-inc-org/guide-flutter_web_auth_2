@@ -5,8 +5,8 @@ resolution: workspace
 publish_to: 'none'
 
 environment:
-  sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.19.6
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -22,7 +22,7 @@ dependencies:
   flutter_web_auth_2: ^5.0.0
 
 dev_dependencies:
-  flutter_lints: ^3.0.1
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
 
