@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="toolbarColor">#000000</color>
-    <color name="navigationBarColor">#1B212C</color>
+    <color name="toolbarColor">#111111</color>
+    <color name="navigationBarColor">#111111</color>
 </resources>
