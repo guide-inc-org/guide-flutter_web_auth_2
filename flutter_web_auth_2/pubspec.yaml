@@ -30,7 +30,7 @@ dependencies:
   flutter_web_auth_2_platform_interface:
     git:
       url: https://github.com/guide-inc-org/guide-flutter_web_auth_2.git
-      ref:  kcfx/v5.0.1+5
+      ref:  kcfx/v5.0.1+7
       path: flutter_web_auth_2_platform_interface
 
   flutter_web_plugins:
