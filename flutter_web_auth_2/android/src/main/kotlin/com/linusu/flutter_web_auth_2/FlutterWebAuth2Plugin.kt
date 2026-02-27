@@ -30,6 +30,13 @@ class FlutterWebAuth2Plugin(
         channel?.setMethodCallHandler(this)
     }
 
+    private fun cancelPendingCallbacks() {
+        callbacks.forEach { (_, pendingResultCallback) ->
+            pendingResultCallback.error("CANCELED", "User canceled login", null)
+        }
+        callbacks.clear()
+    }
+
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         initInstance(binding.binaryMessenger, binding.applicationContext)
     }
@@ -46,6 +53,7 @@ class FlutterWebAuth2Plugin(
                 val callbackUrlScheme: String = call.argument<String>("callbackUrlScheme")!!
                 val options = call.argument<Map<String, Any>>("options")!!
 
+                cancelPendingCallbacks()
                 callbacks[callbackUrlScheme] = resultCallback
                 activity?.startActivity(Intent(activity, AuthenticationManagementActivity::class.java).apply {
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_URI, url)
@@ -60,10 +68,7 @@ class FlutterWebAuth2Plugin(
             }
 
             "cleanUpDanglingCalls" -> {
-                callbacks.forEach { (_, danglingResultCallback) ->
-                    danglingResultCallback.error("CANCELED", "User canceled login", null)
-                }
-                callbacks.clear()
+                cancelPendingCallbacks()
                 resultCallback.success(null)
             }
 

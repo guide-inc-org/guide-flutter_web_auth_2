@@ -1,6 +1,7 @@
 package com.linusu.flutter_web_auth_2
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -18,6 +19,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
     companion object {
         const val KEY_AUTH_STARTED: String = "authStarted"
         const val KEY_AUTH_URI: String = "authUri"
+        const val KEY_AUTH_FINISH: String = "authFinish"
         const val KEY_AUTH_OPTION_INTENT_FLAGS: String = "authOptionsIntentFlags"
         const val KEY_AUTH_OPTION_TARGET_PACKAGE: String = "authOptionsTargetPackage"
         const val KEY_AUTH_OPTION_PREFER_EPHEMERAL: String = "authOptionsPreferEphemeral"
@@ -29,6 +31,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         fun createResponseHandlingIntent(context: Context): Intent {
             val intent = Intent(context, AuthenticationManagementActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            intent.putExtra(KEY_AUTH_FINISH, true)
             return intent
         }
     }
@@ -50,13 +53,37 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
         // Register the activity result launcher - using standard activity result
         authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-            // Handle result in onNewIntent or onResume
+            if (!authStarted) {
+                return@registerForActivityResult
+            }
+
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+                    Log.d(LOG_TAG, "Ignoring canceled result while in PiP")
+                    return@registerForActivityResult
+                }
+
+                val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
+                callback?.error("CANCELED", "User canceled authentication", null)
+                FlutterWebAuth2Plugin.callbacks.remove(callbackScheme)
+            }
+
+            finish()
         }
 
         if (savedInstanceState == null) {
             extractState(intent.extras)
         } else {
             extractState(savedInstanceState)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        if (intent.getBooleanExtra(KEY_AUTH_FINISH, false)) {
+            finish()
         }
     }
 
@@ -146,11 +173,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
             authStarted = true
             return
         }
-        /* If the authentication was already started and we've returned here, the user either
-         * completed or cancelled authentication.
-         * Either way we want to return to our original flutter activity, so just finish here
-         */
-        finish()
+        // Keep this activity alive while auth is in progress.
+        // Completion/cancel is handled via callback intent or activity result.
     }
 
     fun shouldUseAuthTabs(): Boolean {

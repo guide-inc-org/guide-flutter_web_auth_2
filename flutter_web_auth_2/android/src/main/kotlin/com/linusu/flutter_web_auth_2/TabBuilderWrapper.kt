@@ -9,6 +9,7 @@ import androidx.activity.result.ActivityResultLauncher
 // import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 
 interface TabBuilderWrapper {
@@ -59,11 +60,25 @@ class CtBuilderWrapper(
                 get() = intent.intent
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(
+                    intent.intent.apply { data = url },
+                    ActivityOptionsCompat.makeCustomAnimation(
+                        context,
+                        R.anim.slide_in_up,
+                        R.anim.fade_in,
+                    ),
+                )
             }
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(
+                    intent.intent.apply { data = url },
+                    ActivityOptionsCompat.makeCustomAnimation(
+                        context,
+                        R.anim.slide_in_up,
+                        R.anim.fade_in,
+                    ),
+                )
             }
         }
     }

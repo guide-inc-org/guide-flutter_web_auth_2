@@ -34,6 +34,8 @@ class FlutterWebAuth2 {
   static final _OnAppLifecycleResumeObserver _resumedObserver =
       _OnAppLifecycleResumeObserver(_cleanUpDanglingCalls);
 
+  static bool get _shouldCleanUpDanglingCallsOnResume => !PlatformIs.android;
+
   static void _assertCallbackScheme(String callbackUrlScheme) {
     if ((PlatformIs.web || (!PlatformIs.windows && !PlatformIs.linux)) &&
         !_schemeRegExp.hasMatch(callbackUrlScheme)) {
@@ -74,10 +76,12 @@ class FlutterWebAuth2 {
 
     _assertCallbackScheme(callbackUrlScheme);
 
-    WidgetsBinding.instance.removeObserver(
-      _resumedObserver,
-    ); // safety measure so we never add this observer twice
-    WidgetsBinding.instance.addObserver(_resumedObserver);
+    if (_shouldCleanUpDanglingCallsOnResume) {
+      WidgetsBinding.instance.removeObserver(
+        _resumedObserver,
+      ); // safety measure so we never add this observer twice
+      WidgetsBinding.instance.addObserver(_resumedObserver);
+    }
     return _platform.authenticate(
       url: url,
       callbackUrlScheme: callbackUrlScheme,
