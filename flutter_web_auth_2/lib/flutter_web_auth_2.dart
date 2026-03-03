@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_web_auth_2/src/options.dart';
 import 'package:flutter_web_auth_2/src/platform/platform_is.dart';
 import 'package:flutter_web_auth_2_platform_interface/flutter_web_auth_2_platform_interface.dart';
+import 'package:flutter_web_auth_2_platform_interface/method_channel/method_channel.dart';
 
 export 'src/options.dart';
 export 'src/unsupported.dart'
@@ -68,6 +69,7 @@ class FlutterWebAuth2 {
     required String url,
     required String callbackUrlScheme,
     FlutterWebAuth2Options options = const FlutterWebAuth2Options(),
+    VoidCallback? onOpenedBrowser,
   }) async {
     assert(
       !(kIsWeb && options.debugOrigin != null && !kDebugMode),
@@ -82,11 +84,39 @@ class FlutterWebAuth2 {
       ); // safety measure so we never add this observer twice
       WidgetsBinding.instance.addObserver(_resumedObserver);
     }
-    return _platform.authenticate(
-      url: url,
-      callbackUrlScheme: callbackUrlScheme,
-      options: options.toJson(),
-    );
+
+    // Register callback for browser opened event (Android uses NAVIGATION_STARTED)
+    if (onOpenedBrowser != null) {
+      if (PlatformIs.android) {
+        // Android: Use native NAVIGATION_STARTED event
+        FlutterWebAuth2MethodChannel.registerBrowserOpenedCallback(
+          callbackUrlScheme,
+          onOpenedBrowser,
+        );
+      } else {
+        // iOS/other: Use delay-based approach
+        Future.delayed(
+          const Duration(milliseconds: defaultSlideInUpDuration),
+          onOpenedBrowser,
+        );
+      }
+    }
+
+    try {
+      final result = await _platform.authenticate(
+        url: url,
+        callbackUrlScheme: callbackUrlScheme,
+        options: options.toJson(),
+      );
+      return result;
+    } finally {
+      // Clean up callback registration
+      if (onOpenedBrowser != null && PlatformIs.android) {
+        FlutterWebAuth2MethodChannel.unregisterBrowserOpenedCallback(
+          callbackUrlScheme,
+        );
+      }
+    }
   }
 
   /// The plugin may need to store the resulting callbacks in order to pass

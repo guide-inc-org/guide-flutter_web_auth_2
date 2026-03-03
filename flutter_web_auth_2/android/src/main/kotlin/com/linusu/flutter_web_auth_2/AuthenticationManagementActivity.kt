@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
+import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsServiceConnection
@@ -74,6 +75,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
     private var serviceConnection: CustomTabsServiceConnection? = null
     private var serviceConnected: Boolean = false
     private var pendingLaunch: Boolean = false
+    private var browserOpenedNotified: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,8 +130,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 customTabsClient = client
                 client.warmup(0)
 
-                // Create session (required for EngagementSignalsCallback)
-                customTabsSession = client.newSession(null)
+                // Create session with callback for navigation events
+                customTabsSession = client.newSession(createCustomTabsCallback())
 
                 Log.d(TAG, "CustomTabsSession created: ${customTabsSession != null}")
 
@@ -157,6 +159,27 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
         val bindResult = CustomTabsClient.bindCustomTabsService(this, packageName, serviceConnection!!)
         Log.d(TAG, "bindCustomTabsService: bindResult=$bindResult")
+    }
+
+    /**
+     * Create CustomTabsCallback to receive navigation events.
+     * NAVIGATION_STARTED is used to notify Flutter that browser has opened.
+     */
+    private fun createCustomTabsCallback(): CustomTabsCallback {
+        return object : CustomTabsCallback() {
+            override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
+                Log.d(TAG, "onNavigationEvent: event=$navigationEvent")
+                when (navigationEvent) {
+                    NAVIGATION_STARTED -> {
+                        if (!browserOpenedNotified) {
+                            browserOpenedNotified = true
+                            Log.d(TAG, "onNavigationEvent: NAVIGATION_STARTED - notifying Flutter")
+                            FlutterWebAuth2Plugin.notifyBrowserOpened(callbackScheme)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**

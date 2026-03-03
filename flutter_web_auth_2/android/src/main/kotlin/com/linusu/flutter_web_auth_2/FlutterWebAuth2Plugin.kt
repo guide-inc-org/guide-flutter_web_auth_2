@@ -22,12 +22,21 @@ class FlutterWebAuth2Plugin(
 ) : MethodCallHandler, FlutterPlugin, ActivityAware {
     companion object {
         val callbacks = mutableMapOf<String, Result>()
+        private var pluginInstance: FlutterWebAuth2Plugin? = null
+
+        /**
+         * Notify Flutter that browser has opened (NAVIGATION_STARTED event)
+         */
+        fun notifyBrowserOpened(callbackScheme: String) {
+            pluginInstance?.channel?.invokeMethod("onBrowserOpened", mapOf("callbackScheme" to callbackScheme))
+        }
     }
 
     private fun initInstance(messenger: BinaryMessenger, context: Context) {
         this.context = context
         channel = MethodChannel(messenger, "flutter_web_auth_2")
         channel?.setMethodCallHandler(this)
+        pluginInstance = this
     }
 
     private fun cancelPendingCallbacks() {
@@ -44,6 +53,7 @@ class FlutterWebAuth2Plugin(
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = null
         channel = null
+        pluginInstance = null
     }
 
     override fun onMethodCall(call: MethodCall, resultCallback: Result) {

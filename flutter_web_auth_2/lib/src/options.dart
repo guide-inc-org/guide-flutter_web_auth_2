@@ -1,6 +1,10 @@
 /// Default intent flags for opening the custom tabs intent on Android.
 const defaultIntentFlags = 0;
 
+/// Default duration for slide in up animation (in milliseconds).
+/// This should match the value in Android's res/values/integers.xml
+const defaultSlideInUpDuration = 300;
+
 /// "Ephemeral" intent flags for opening the custom tabs intent on Android.
 @Deprecated('Use [preferEphemeral]')
 const ephemeralIntentFlags = defaultIntentFlags | 1 << 30;
