@@ -9,8 +9,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
-// import androidx.browser.auth.AuthTabIntent
-// import androidx.browser.auth.AuthTabIntent.AuthResult
+import androidx.browser.auth.AuthTabIntent
+import androidx.browser.auth.AuthTabIntent.AuthResult
 import androidx.browser.customtabs.CustomTabsIntent
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
@@ -46,10 +46,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Register the activity result launcher - using standard activity result
-        authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-            // Handle result in onNewIntent or onResume
-        }
+        // Register the activity result launcher
+        authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
 
         if (savedInstanceState == null) {
             extractState(intent.extras)
@@ -58,11 +56,25 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
-    /*
+    override fun onPause() {
+        super.onPause()
+        Log.d(LOG_TAG, "onPause: authStarted=$authStarted")
+        if (shouldUseAuthTabs()) {
+            overridePendingTransition(R.anim.slide_in_bottom, R.anim.fade_out)
+        }
+    }
+
+    private fun finishWithAnimation() {
+        finish()
+        if (shouldUseAuthTabs()) {
+            overridePendingTransition(R.anim.fade_in, R.anim.slide_out_bottom)
+        }
+    }
+
     private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
+        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
         if (callback == null) {
-            finish()
+            finishWithAnimation()
             return
         }
 
@@ -76,24 +88,22 @@ class AuthenticationManagementActivity : ComponentActivity() {
             }
 
             else -> {
-                callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
+                callback.error(
+                    "FAILED",
+                    "Authentication failed with code: ${result.resultCode}",
+                    null
+                )
             }
         }
 
-        finish()
+        FlutterWebAuth2Plugin.removeCallback(callbackScheme)
+        finishWithAnimation()
     }
-    */
 
     override fun onResume() {
         super.onResume()
 
         if (!authStarted) {
-
-            // Always use CustomTabsIntent for SDK 35 compatibility
-            val intentBuilder = CtBuilderWrapper(CustomTabsIntent.Builder())
-            Log.d(LOG_TAG, "Using CustomTabsIntent")
-            
-            /*
             val intentBuilder = if (shouldUseAuthTabs()) {
                 Log.d(LOG_TAG, "Using AuthTabIntent")
                 AuthTabBuilderWrapper(AuthTabIntent.Builder())
@@ -101,8 +111,6 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 Log.d(LOG_TAG, "Using CustomTabsIntent")
                 CtBuilderWrapper(CustomTabsIntent.Builder())
             }
-            */
-
             // Set ephemeral browsing if requested and supported
             if (preferEphemeral) {
                 try {
@@ -128,11 +136,11 @@ class AuthenticationManagementActivity : ComponentActivity() {
                     Log.d(LOG_TAG, "Using custom scheme: $callbackScheme")
                     intent.launch(this, authLauncher, authenticationUri, callbackScheme)
                 }
-            } catch (e: android.content.ActivityNotFoundException){
+            } catch (e: android.content.ActivityNotFoundException) {
                 Log.e(LOG_TAG, "Failed to start authentication. No browser available (Activity not found)")
                 val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
                 callback?.error("NO_BROWSER", "No valid browser available for authentication.", e.message)
-                finish()
+                finishWithAnimation()
             }
 
             authStarted = true
@@ -142,7 +150,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
          * completed or cancelled authentication.
          * Either way we want to return to our original flutter activity, so just finish here
          */
-        finish()
+        finishWithAnimation()
     }
 
     fun shouldUseAuthTabs(): Boolean {
@@ -184,7 +192,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
     private fun extractState(state: Bundle?) {
         if (state == null) {
-            finish()
+            finishWithAnimation()
             return
         }
         authStarted = state.getBoolean(KEY_AUTH_STARTED, false)

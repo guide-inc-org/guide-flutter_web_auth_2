@@ -20,8 +20,8 @@ topics:
   - web
 
 environment:
-  sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.19.6
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   desktop_webview_window: ^0.2.3
@@ -30,20 +30,21 @@ dependencies:
   flutter_web_auth_2_platform_interface:
     git:
       url: https://github.com/guide-inc-org/guide-flutter_web_auth_2.git
-      ref:  kcfx/v5.0.1+5
+      ref:  kcfx/v5.0.1+6
       path: flutter_web_auth_2_platform_interface
 
   flutter_web_plugins:
     sdk: flutter
   path_provider: ^2.1.2
   url_launcher: ^6.1.6
-  web: ">=0.3.0 <2.0.0"
+  web: ">=0.5.0 <2.0.0"
   window_to_front: ^0.0.3
 
 dev_dependencies:
-  flutter_lints: ^3.0.1
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+  melos: ^7.1.0
 
 flutter:
   plugin:
@@ -64,4 +65,3 @@ flutter:
       windows:
         dartPluginClass: FlutterWebAuth2LinowsPlugin
         fileName: src/linows.dart
-
