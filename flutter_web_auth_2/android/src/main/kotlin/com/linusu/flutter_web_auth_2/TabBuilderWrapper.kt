@@ -23,9 +23,9 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { 
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
         // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-        // b.setEphemeralBrowsingEnabled(enabled) 
+        // b.setEphemeralBrowsingEnabled(enabled)
     }
 
     override fun build(activity: Activity): IntentWrapper {
@@ -37,6 +37,7 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
         b.setDefaultColorSchemeParams(colorSchemeParams)
             .setStartAnimations(activity, R.anim.slide_in_bottom, R.anim.fade_out)
             .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
+            .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
 
         val intent = b.build()
         return object : IntentWrapper {
