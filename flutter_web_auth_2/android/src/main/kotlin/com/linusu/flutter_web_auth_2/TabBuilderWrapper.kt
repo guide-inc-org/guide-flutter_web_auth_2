@@ -6,14 +6,15 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
-// import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.browser.customtabs.CustomTabsSession
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 
 interface TabBuilderWrapper {
     fun setEphemeralBrowsingEnabled(enabled: Boolean): TabBuilderWrapper
+    fun setSession(session: CustomTabsSession?): TabBuilderWrapper
     fun build(): IntentWrapper
 }
 
@@ -50,6 +51,10 @@ class CtBuilderWrapper(
     override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
         // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
         // b.setEphemeralBrowsingEnabled(enabled)
+    }
+
+    override fun setSession(session: CustomTabsSession?) = apply {
+        session?.let { b.setSession(it) }
     }
 
     override fun build(): IntentWrapper {
