@@ -6,8 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.browser.customtabs.CustomTabColorSchemeParams
-// import androidx.browser.auth.AuthTabIntent
+//import androidx.browser.auth.AuthTabColorSchemeParams
+//import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 
 interface TabBuilderWrapper {
@@ -23,9 +25,8 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { 
-        // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-        // b.setEphemeralBrowsingEnabled(enabled) 
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
+//        b.setEphemeralBrowsingEnabled(enabled)
     }
 
     override fun build(activity: Activity): IntentWrapper {
@@ -46,37 +47,42 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
                 get() = intent.intent
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(intent.intent.apply { data = url })
             }
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(intent.intent.apply { data = url })
             }
         }
     }
 }
 
-/*
-@SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
-class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
-
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
-
-    override fun build(activity: Activity): IntentWrapper {
-        val intent = b.build()
-        return object : IntentWrapper {
-
-            override val intent: Intent
-                get() = intent.intent
-
-            override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launch(launcher, url, redirectHost, redirectPath)
-            }
-
-            override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launch(launcher, url, redirectScheme)
-            }
-        }
-    }
-}
-*/
+//@SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
+//class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
+//
+//    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
+//
+//    override fun build(activity: Activity): IntentWrapper {
+//        val colorSchemeParams = AuthTabColorSchemeParams.Builder()
+//            .setToolbarColor(ContextCompat.getColor(activity, R.color.toolbarColor))
+//            .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
+//            .build()
+//
+//        b.setDefaultColorSchemeParams(colorSchemeParams)
+//
+//        val intent = b.build()
+//        return object : IntentWrapper {
+//
+//            override val intent: Intent
+//                get() = intent.intent
+//
+//            override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
+//                intent.launch(launcher, url, redirectHost, redirectPath)
+//            }
+//
+//            override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
+//                intent.launch(launcher, url, redirectScheme)
+//            }
+//        }
+//    }
+//}

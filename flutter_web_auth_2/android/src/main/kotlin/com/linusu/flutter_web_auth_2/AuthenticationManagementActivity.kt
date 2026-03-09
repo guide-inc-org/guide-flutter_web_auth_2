@@ -1,6 +1,7 @@
 package com.linusu.flutter_web_auth_2
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -9,8 +10,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
-// import androidx.browser.auth.AuthTabIntent
-// import androidx.browser.auth.AuthTabIntent.AuthResult
+//import androidx.browser.auth.AuthTabIntent
+//import androidx.browser.auth.AuthTabIntent.AuthResult
 import androidx.browser.customtabs.CustomTabsIntent
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
@@ -18,6 +19,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
     companion object {
         const val KEY_AUTH_STARTED: String = "authStarted"
         const val KEY_AUTH_URI: String = "authUri"
+        const val KEY_AUTH_FINISH: String = "authFinish"
         const val KEY_AUTH_OPTION_INTENT_FLAGS: String = "authOptionsIntentFlags"
         const val KEY_AUTH_OPTION_TARGET_PACKAGE: String = "authOptionsTargetPackage"
         const val KEY_AUTH_OPTION_PREFER_EPHEMERAL: String = "authOptionsPreferEphemeral"
@@ -28,6 +30,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         fun createResponseHandlingIntent(context: Context): Intent {
             val intent = Intent(context, AuthenticationManagementActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            intent.putExtra(KEY_AUTH_FINISH, true)
             return intent
         }
     }
@@ -47,8 +50,24 @@ class AuthenticationManagementActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Register the activity result launcher - using standard activity result
+//        authLauncher = AuthTabIntent.registerActivityResultLauncher(this, this::handleAuthResult)
+
         authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-            // Handle result in onNewIntent or onResume
+            Log.d(LOG_TAG, "registerForActivityResult: resultCode=${result.resultCode}, authStarted=$authStarted")
+            if (!authStarted) {
+                return@registerForActivityResult
+            }
+
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+                    Log.d(LOG_TAG, "Ignoring canceled result while in PiP")
+                    return@registerForActivityResult
+                }
+
+                val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
+                callback?.error("CANCELED", "User canceled authentication", null)
+            }
+            finishWithAnimation()
         }
 
         if (savedInstanceState == null) {
@@ -58,35 +77,38 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
-    /*
-    private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
-        if (callback == null) {
-            finish()
-            return
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        if (intent.getBooleanExtra(KEY_AUTH_FINISH, false)) {
+            finishWithAnimation()
         }
-
-        when (result.resultCode) {
-            AuthTabIntent.RESULT_OK -> {
-                callback.success(result.resultUri!!.toString())
-            }
-
-            AuthTabIntent.RESULT_CANCELED -> {
-                callback.error("CANCELED", "User canceled authentication", null)
-            }
-
-            else -> {
-                callback.error("FAILED", "Authentication failed with code: ${result.resultCode}", null)
-            }
-        }
-
-        finish()
     }
-    */
+
+
+    private fun finishWithAnimation() {
+        finish()
+        overridePendingTransition(R.anim.fade_in, R.anim.slide_out_bottom)
+        if(shouldUseAuthTabs()){
+            overridePendingTransition(R.anim.fade_in, R.anim.slide_out_bottom)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d(LOG_TAG, "onPause: authStarted=$authStarted")
+            overridePendingTransition(R.anim.slide_in_bottom, R.anim.fade_out)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(LOG_TAG, "onDestroy: authStarted=$authStarted")
+    }
 
     override fun onResume() {
         super.onResume()
-
+        Log.d(LOG_TAG, "onResum: authStarted=$authStarted")
         if (!authStarted) {
 
             // Always use CustomTabsIntent for SDK 35 compatibility
@@ -101,7 +123,8 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 Log.d(LOG_TAG, "Using CustomTabsIntent")
                 CtBuilderWrapper(CustomTabsIntent.Builder())
             }
-            */
+
+             */
 
             // Set ephemeral browsing if requested and supported
             if (preferEphemeral) {
@@ -132,17 +155,12 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 Log.e(LOG_TAG, "Failed to start authentication. No browser available (Activity not found)")
                 val callback = FlutterWebAuth2Plugin.removeCallback(callbackScheme)
                 callback?.error("NO_BROWSER", "No valid browser available for authentication.", e.message)
-                finish()
+                finishWithAnimation()
             }
 
             authStarted = true
             return
         }
-        /* If the authentication was already started and we've returned here, the user either
-         * completed or cancelled authentication.
-         * Either way we want to return to our original flutter activity, so just finish here
-         */
-        finish()
     }
 
     fun shouldUseAuthTabs(): Boolean {
@@ -202,3 +220,4 @@ class AuthenticationManagementActivity : ComponentActivity() {
         callbackPath = state.getString(KEY_AUTH_CALLBACK_PATH)
     }
 }
+
