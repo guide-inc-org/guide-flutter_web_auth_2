@@ -31,7 +31,7 @@ dependencies:
   flutter_web_auth_2_platform_interface:
     git:
       url: https://github.com/guide-inc-org/guide-flutter_web_auth_2.git
-      ref: kcsta/v.5.0.1+1
+      ref: kcsta/v5.0.1+1
       path: flutter_web_auth_2_platform_interface
   flutter_web_plugins:
     sdk: flutter
