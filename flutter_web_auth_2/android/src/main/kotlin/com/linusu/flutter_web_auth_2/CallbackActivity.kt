@@ -14,7 +14,7 @@ class CallbackActivity : Activity() {
         val scheme = url?.scheme
 
         if (scheme != null) {
-            FlutterWebAuth2Plugin.callbacks.remove(scheme)?.success(url.toString())
+            FlutterWebAuth2Plugin.removeCallback(scheme)?.success(url.toString())
         }
         startActivity(AuthenticationManagementActivity.createResponseHandlingIntent(this))
         finish()
