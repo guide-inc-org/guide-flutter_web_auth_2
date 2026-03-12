@@ -5,12 +5,15 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
+import androidx.browser.auth.AuthTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.ContextCompat
 
 interface TabBuilderWrapper {
     fun setEphemeralBrowsingEnabled(enabled: Boolean): TabBuilderWrapper
-    fun build(): IntentWrapper
+    fun build(activity: Activity): IntentWrapper
 }
 
 interface IntentWrapper {
@@ -21,9 +24,21 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
+        b.setEphemeralBrowsingEnabled(enabled)
+    }
 
-    override fun build(): IntentWrapper {
+    override fun build(activity: Activity): IntentWrapper {
+        val colorSchemeParams = CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(ContextCompat.getColor(activity, R.color.toolbarColor))
+            .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
+            .build()
+
+        b.setDefaultColorSchemeParams(colorSchemeParams)
+            .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
+            .setStartAnimations(activity, R.anim.slide_in_bottom, R.anim.fade_out)
+            .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
+
         val intent = b.build()
         return object : IntentWrapper {
 
@@ -44,9 +59,15 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
 
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) =
+        apply { b.setEphemeralBrowsingEnabled(enabled) }
 
-    override fun build(): IntentWrapper {
+    override fun build(activity: Activity): IntentWrapper {
+        val colorSchemeParams = AuthTabColorSchemeParams.Builder()
+            .setToolbarColor(ContextCompat.getColor(activity, R.color.toolbarColor))
+            .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
+            .build()
+        b.setDefaultColorSchemeParams(colorSchemeParams)
         val intent = b.build()
         return object : IntentWrapper {
 

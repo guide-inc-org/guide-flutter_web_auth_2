@@ -22,6 +22,19 @@ class FlutterWebAuth2Plugin(
 ) : MethodCallHandler, FlutterPlugin, ActivityAware {
     companion object {
         val callbacks = mutableMapOf<String, Result>()
+
+        fun removeCallback(key: String): Result? {
+            val callback = callbacks.remove(key)
+            if (callback != null) {
+                // Remove all other entries with the same callback to prevent duplicate calls
+                callbacks
+                    .filterValues { it == callback }
+                    .keys
+                    .toList()
+                    .forEach { callbacks.remove(it) }
+            }
+            return callback
+        }
     }
 
     private fun initInstance(messenger: BinaryMessenger, context: Context) {
@@ -45,22 +58,35 @@ class FlutterWebAuth2Plugin(
                 val url = Uri.parse(call.argument("url"))
                 val callbackUrlScheme: String = call.argument<String>("callbackUrlScheme")!!
                 val options = call.argument<Map<String, Any>>("options")!!
+                val callbackPath = options["httpsPath"] as? String
 
+                // Register callback for both keys so either callback path works
                 callbacks[callbackUrlScheme] = resultCallback
+                if (callbackPath != null && callbackPath != callbackUrlScheme) {
+                    callbacks[callbackPath] = resultCallback
+                }
+
                 activity?.startActivity(Intent(activity, AuthenticationManagementActivity::class.java).apply {
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_URI, url)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_INTENT_FLAGS, options["intentFlags"] as Int)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TARGET_PACKAGE, findTargetBrowserPackageName(options))
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_SCHEME, callbackUrlScheme)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_HOST, options["httpsHost"] as String?)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, options["httpsPath"] as String?)
+                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, callbackPath)
                     putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_PREFER_EPHEMERAL, options["preferEphemeral"] as Boolean? ?: false)
                 })
             }
 
             "cleanUpDanglingCalls" -> {
-                callbacks.forEach { (_, danglingResultCallback) ->
-                    danglingResultCallback.error("CANCELED", "User canceled login", null)
+                // Use IdentityHashMap to track processed Result instances by reference.
+                // The same Result callback may be registered under multiple keys
+                // (e.g., both callbackUrlScheme and callbackPath), so we must ensure
+                // .error() is only called once per unique Result instance.
+                val processedResults = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Result, Boolean>())
+                callbacks.values.forEach { danglingResultCallback ->
+                    if (processedResults.add(danglingResultCallback)) {
+                        danglingResultCallback.error("CANCELED", "User canceled login", null)
+                    }
                 }
                 callbacks.clear()
                 resultCallback.success(null)
