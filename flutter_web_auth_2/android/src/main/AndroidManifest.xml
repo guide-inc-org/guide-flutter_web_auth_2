@@ -2,7 +2,9 @@
     package="com.linusu.flutter_web_auth_2">
 
     <application>
-        <activity android:name="com.linusu.flutter_web_auth_2.AuthenticationManagementActivity" />
+        <activity android:name="com.linusu.flutter_web_auth_2.AuthenticationManagementActivity"
+        android:theme="@style/FlutterWebAuth2.Transparent"
+            />
     </application>
 
     <queries>

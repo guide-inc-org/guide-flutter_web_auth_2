@@ -36,8 +36,6 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
 
         b.setDefaultColorSchemeParams(colorSchemeParams)
             .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
-            .setStartAnimations(activity, R.anim.slide_in_bottom, R.anim.fade_out)
-            .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
 
         val intent = b.build()
         return object : IntentWrapper {
@@ -46,11 +44,11 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
                 get() = intent.intent
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(intent.intent.apply { data = url })
             }
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launchUrl(activity, url)
+                launcher.launch(intent.intent.apply { data = url })
             }
         }
     }
