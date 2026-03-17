@@ -77,9 +77,22 @@ class AuthenticationManagementActivity : ComponentActivity() {
             finishWithAnimation()
             return
         }
-
         when (result.resultCode) {
             AuthTabIntent.RESULT_OK -> {
+                val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                if (launchIntent != null) {
+                    try {
+                        launchIntent.apply {
+                            data = result.resultUri
+                            intent.extras?.let { putExtras(it) }
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        startActivity(launchIntent)
+                        return;
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "Failed to launch main activity with auth result: ${e.message}")
+                    }
+                }
                 callback.success(result.resultUri!!.toString())
             }
 
@@ -210,3 +223,4 @@ class AuthenticationManagementActivity : ComponentActivity() {
         callbackPath = state.getString(KEY_AUTH_CALLBACK_PATH)
     }
 }
+
