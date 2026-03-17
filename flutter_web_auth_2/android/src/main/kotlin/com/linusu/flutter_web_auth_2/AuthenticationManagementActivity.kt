@@ -143,15 +143,6 @@ class AuthenticationManagementActivity : ComponentActivity() {
          * Either way we want to return to our original flutter activity, so just finish here
          */
         finish()
-
-        /// overidde transition(modal bottom for close) in Android <= 14
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            @Suppress("DEPRECATION")
-            overridePendingTransition(
-                    R.anim.slide_in_bottom,
-                    R.anim.slide_out_bottom
-                )
-        }
     }
 
     fun shouldUseAuthTabs(): Boolean {

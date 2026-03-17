@@ -34,9 +34,22 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
             .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
             .build()
 
+        // Set as Partial Custom Tab (full screen height) to enable startActivityForResult
+        // This allows receiving result when Custom Tab is closed/minimized
+        // Use full display height including system bars to eliminate top gap
+        val screenHeight = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            activity.windowManager.currentWindowMetrics.bounds.height()
+        } else {
+            val realMetrics = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            activity.windowManager.defaultDisplay.getRealMetrics(realMetrics)
+            realMetrics.heightPixels
+        }
+        b.setInitialActivityHeightPx(screenHeight, CustomTabsIntent.ACTIVITY_HEIGHT_FIXED)
+            .setToolbarCornerRadiusDp(0)
+
         b.setDefaultColorSchemeParams(colorSchemeParams)
-            .setStartAnimations(activity, R.anim.slide_in_bottom, R.anim.fade_out)
-            .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
+            // .setExitAnimations(activity, R.anim.fade_in, R.anim.slide_out_bottom)
             .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
 
         val intent = b.build()
@@ -46,11 +59,13 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
                 get() = intent.intent
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectHost: String, redirectPath: String) {
-                intent.launchUrl(activity, url)
+                intent.intent.setData(url)
+                launcher.launch(intent.intent)
             }
 
             override fun launch(activity: Activity, launcher: ActivityResultLauncher<Intent>, url: Uri, redirectScheme: String) {
-                intent.launchUrl(activity, url)
+                intent.intent.setData(url)
+                launcher.launch(intent.intent)
             }
         }
     }
