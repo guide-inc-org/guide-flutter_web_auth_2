@@ -22,7 +22,15 @@ class FlutterWebAuth2Plugin(
 ) : MethodCallHandler, FlutterPlugin, ActivityAware {
     companion object {
         val callbacks = mutableMapOf<String, Result>()
+
+        /**
+         * Tracks whether the current auth flow uses AuthTab (true) or CustomTab (false).
+         * Used by CallbackActivity to decide whether to notify AuthenticationManagementActivity.
+         */
+        var usingAuthTab: Boolean = false
     }
+
+    private var customTabLauncher: CustomTabLauncher? = null
 
     private fun initInstance(messenger: BinaryMessenger, context: Context) {
         this.context = context
@@ -45,30 +53,99 @@ class FlutterWebAuth2Plugin(
                 val url = Uri.parse(call.argument("url"))
                 val callbackUrlScheme: String = call.argument<String>("callbackUrlScheme")!!
                 val options = call.argument<Map<String, Any>>("options")!!
+                val targetPackage = findTargetBrowserPackageName(options)
+                val preferEphemeral = options["preferEphemeral"] as Boolean? ?: false
+
+                // Cancel previous auth with same scheme if exists
+                callbacks.remove(callbackUrlScheme)?.error("CANCELED", "New authentication started", null)
 
                 callbacks[callbackUrlScheme] = resultCallback
-                activity?.startActivity(Intent(activity, AuthenticationManagementActivity::class.java).apply {
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_URI, url)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_INTENT_FLAGS, options["intentFlags"] as Int)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TARGET_PACKAGE, findTargetBrowserPackageName(options))
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_SCHEME, callbackUrlScheme)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_HOST, options["httpsHost"] as String?)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, options["httpsPath"] as String?)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_PREFER_EPHEMERAL, options["preferEphemeral"] as Boolean? ?: false)
-                    putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TOOLBAR_COLOR, (options["toolbarColor"] as? Number)?.toInt())
-                })
+
+                if (shouldUseAuthTabs(context!!, preferEphemeral, targetPackage)) {
+                    // AuthTab: needs Activity for registerActivityResultLauncher
+                    usingAuthTab = true
+                    activity?.startActivity(Intent(activity, AuthenticationManagementActivity::class.java).apply {
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_URI, url)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_INTENT_FLAGS, options["intentFlags"] as Int)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TARGET_PACKAGE, targetPackage)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_SCHEME, callbackUrlScheme)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_HOST, options["httpsHost"] as String?)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_CALLBACK_PATH, options["httpsPath"] as String?)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_PREFER_EPHEMERAL, preferEphemeral)
+                        putExtra(AuthenticationManagementActivity.KEY_AUTH_OPTION_TOOLBAR_COLOR, (options["toolbarColor"] as? Number)?.toInt())
+                    })
+                } else {
+                    // CustomTab: launch directly from Flutter activity (no intermediate Activity)
+                    usingAuthTab = false
+                    launchCustomTab(
+                        url = url,
+                        callbackUrlScheme = callbackUrlScheme,
+                        intentFlags = options["intentFlags"] as Int,
+                        targetPackage = targetPackage,
+                        preferEphemeral = preferEphemeral,
+                        toolbarColor = (options["toolbarColor"] as? Number)?.toInt()
+                    )
+                }
             }
 
             "cleanUpDanglingCalls" -> {
-                callbacks.forEach { (_, danglingResultCallback) ->
-                    danglingResultCallback.error("CANCELED", "User canceled login", null)
+                // Skip cleanup if CustomTab session is active — session must stay
+                // alive for applinks redirect to work when user returns to CCT
+                if (customTabLauncher == null) {
+                    callbacks.forEach { (_, danglingResultCallback) ->
+                        danglingResultCallback.error("CANCELED", "User canceled login", null)
+                    }
+                    callbacks.clear()
                 }
-                callbacks.clear()
                 resultCallback.success(null)
             }
 
             else -> resultCallback.notImplemented()
         }
+    }
+
+    private fun launchCustomTab(
+        url: Uri,
+        callbackUrlScheme: String,
+        intentFlags: Int,
+        targetPackage: String?,
+        preferEphemeral: Boolean,
+        toolbarColor: Int?
+    ) {
+        val currentActivity = activity
+        if (currentActivity == null) {
+            callbacks.remove(callbackUrlScheme)?.error("NO_ACTIVITY", "No activity available", null)
+            return
+        }
+
+        // Clean up previous launcher if any
+        cleanUpLauncher()
+
+        customTabLauncher = CustomTabLauncher(currentActivity, targetPackage)
+
+        val bound = customTabLauncher?.bind() ?: false
+        if (!bound) {
+            callbacks.remove(callbackUrlScheme)?.error("NO_BROWSER", "No Custom Tabs package available.", null)
+            cleanUpLauncher()
+            return
+        }
+
+        val launched = customTabLauncher?.launch(
+            uri = url,
+            intentFlags = intentFlags,
+            toolbarColor = toolbarColor,
+            preferEphemeral = preferEphemeral
+        ) ?: false
+
+        if (!launched) {
+            callbacks.remove(callbackUrlScheme)?.error("NO_BROWSER", "No valid browser available for authentication.", null)
+            cleanUpLauncher()
+        }
+    }
+
+    private fun cleanUpLauncher() {
+        customTabLauncher?.unbind()
+        customTabLauncher = null
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -84,6 +161,7 @@ class FlutterWebAuth2Plugin(
     }
 
     override fun onDetachedFromActivity() {
+        cleanUpLauncher()
         activity = null
     }
 

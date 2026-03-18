@@ -17,6 +17,55 @@ object PackageNames {
 val Any.LOG_TAG: String
     get() = "flutter_web_auth_2"
 
+/**
+ * Check if AuthTab API is available in the current androidx.browser version.
+ * Returns false when the library doesn't include AuthTabIntent class.
+ */
+private fun isAuthTabApiAvailable(): Boolean {
+    return try {
+        Class.forName("androidx.browser.auth.AuthTabIntent")
+        true
+    } catch (e: ClassNotFoundException) {
+        false
+    }
+}
+
+/**
+ * Determine whether to use AuthTab or CustomTab for authentication.
+ *
+ * AuthTab is preferred when available because it handles redirect natively
+ * without needing CustomTabsSession. Falls back to CustomTab (with session)
+ * when AuthTab API is not in the classpath or the browser doesn't support it.
+ *
+ * @return true if AuthTab should be used, false for CustomTab with session.
+ */
+fun shouldUseAuthTabs(context: Context, preferEphemeral: Boolean, targetPackage: String?): Boolean {
+    if (!isAuthTabApiAvailable()) return false
+
+    if (!preferEphemeral || targetPackage == null) return true
+
+    val packageMajorVersion = context.getInstalledVersion(targetPackage)
+        ?.substringBefore(".")?.toIntOrNull() ?: 0
+
+    val chromePackages = setOf(
+        PackageNames.CHROME_STABLE,
+        PackageNames.CHROME_BETA,
+        PackageNames.CHROME_DEV,
+    )
+
+    if (chromePackages.contains(targetPackage)) {
+        return packageMajorVersion >= 141
+    } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
+        return packageMajorVersion >= 141
+    } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
+        return packageMajorVersion >= 28
+    } else if (targetPackage == PackageNames.FIREFOX) {
+        return packageMajorVersion >= 143
+    }
+
+    return true
+}
+
 fun Context.getInstalledVersion(packageName: String): String? {
     try {
         val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

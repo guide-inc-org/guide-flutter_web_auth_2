@@ -99,14 +99,14 @@ class AuthenticationManagementActivity : ComponentActivity() {
                 toolbarColor
             )
             Log.d(LOG_TAG, "Using CustomTabsIntent")
-            
+
             /*
             val intentBuilder = if (shouldUseAuthTabs()) {
                 Log.d(LOG_TAG, "Using AuthTabIntent")
                 AuthTabBuilderWrapper(AuthTabIntent.Builder())
             } else {
                 Log.d(LOG_TAG, "Using CustomTabsIntent")
-                CtBuilderWrapper(CustomTabsIntent.Builder())
+                CtBuilderWrapper(CustomTabsIntent.Builder(), this, toolbarColor)
             }
             */
 
