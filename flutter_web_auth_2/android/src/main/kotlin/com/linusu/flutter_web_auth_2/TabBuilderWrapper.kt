@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
-// import androidx.browser.auth.AuthTabIntent
+import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
@@ -47,8 +47,7 @@ class CtBuilderWrapper(
     }
 
     override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
-        // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-        // b.setEphemeralBrowsingEnabled(enabled)
+        b.setEphemeralBrowsingEnabled(enabled)
     }
 
     override fun build(): IntentWrapper {
@@ -69,7 +68,6 @@ class CtBuilderWrapper(
     }
 }
 
-/*
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
 
@@ -92,4 +90,3 @@ class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWr
         }
     }
 }
-*/
