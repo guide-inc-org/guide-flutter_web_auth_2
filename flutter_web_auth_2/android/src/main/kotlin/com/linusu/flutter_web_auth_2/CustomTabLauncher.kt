@@ -132,8 +132,7 @@ class CustomTabLauncher(
 
         if (preferEphemeral) {
             try {
-                // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-                // builder.setEphemeralBrowsingEnabled(true)
+                builder.setEphemeralBrowsingEnabled(true)
                 Log.d(LOG_TAG, "Ephemeral browsing enabled")
             } catch (e: Exception) {
                 Log.w(LOG_TAG, "Failed to enable ephemeral browsing: ${e.message}")
