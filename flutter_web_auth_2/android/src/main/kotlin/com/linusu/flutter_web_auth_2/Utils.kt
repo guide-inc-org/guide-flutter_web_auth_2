@@ -27,8 +27,6 @@ val Any.LOG_TAG: String
  * @return true if AuthTab should be used, false for CustomTab with session.
  */
 fun shouldUseAuthTabs(context: Context, preferEphemeral: Boolean, targetPackage: String?): Boolean {
-    if (!isAuthTabApiAvailable()) return false
-
     if (!preferEphemeral || targetPackage == null) return true
 
     val packageMajorVersion = context.getInstalledVersion(targetPackage)
