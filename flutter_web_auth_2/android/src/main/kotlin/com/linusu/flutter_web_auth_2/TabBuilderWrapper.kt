@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
+import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
@@ -69,7 +70,20 @@ class CtBuilderWrapper(
 }
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
-class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
+class AuthTabBuilderWrapper(
+    private val b: AuthTabIntent.Builder,
+    private val context: Context,
+    toolbarColor: Int? = null
+) : TabBuilderWrapper {
+
+    init {
+        val color = toolbarColor ?: ContextCompat.getColor(context, R.color.toolbarColor)
+        val colorSchemeParams = AuthTabColorSchemeParams.Builder().apply {
+            setToolbarColor(color)
+            setNavigationBarColor(color)
+        }.build()
+        b.setDefaultColorSchemeParams(colorSchemeParams)
+    }
 
     override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
 

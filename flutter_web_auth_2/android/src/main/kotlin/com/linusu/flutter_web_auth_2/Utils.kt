@@ -18,19 +18,6 @@ val Any.LOG_TAG: String
     get() = "flutter_web_auth_2"
 
 /**
- * Check if AuthTab API is available in the current androidx.browser version.
- * Returns false when the library doesn't include AuthTabIntent class.
- */
-private fun isAuthTabApiAvailable(): Boolean {
-    return try {
-        Class.forName("androidx.browser.auth.AuthTabIntent")
-        true
-    } catch (e: ClassNotFoundException) {
-        false
-    }
-}
-
-/**
  * Determine whether to use AuthTab or CustomTab for authentication.
  *
  * AuthTab is preferred when available because it handles redirect natively
