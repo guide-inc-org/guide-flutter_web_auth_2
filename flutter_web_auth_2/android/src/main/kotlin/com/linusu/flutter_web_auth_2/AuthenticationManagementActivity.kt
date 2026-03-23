@@ -64,9 +64,9 @@ class AuthenticationManagementActivity : ComponentActivity() {
         }
     }
 
-    private fun finishWithAnimation() {
+    private fun finishWithAnimation(authResultHandled: Boolean = true) {
         finish()
-        if (shouldUseAuthTabs()) {
+        if (shouldUseAuthTabs() && authResultHandled) {
             overridePendingTransition(R.anim.fade_in, R.anim.slide_out_bottom)
         }
     }
@@ -80,9 +80,20 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
         when (result.resultCode) {
             AuthTabIntent.RESULT_OK -> {
+                val resultUri = result.resultUri!!
+                try {
+                    val deepLinkIntent = Intent(Intent.ACTION_VIEW, resultUri)
+                    /// prevent case deeplink only
+                    startActivity(deepLinkIntent)
+                    /// hold old navigation behavior
+                    /// and make sure it sample with current deeplink navigation behaviour
+                    finishWithAnimation(authResultHandled = false)
+                    return
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "Failed to launch main activity with auth result: ${e.message}")
+                }
                 callback.success(result.resultUri!!.toString())
             }
-
             AuthTabIntent.RESULT_CANCELED -> {
                 callback.error("CANCELED", "User canceled authentication", null)
             }
