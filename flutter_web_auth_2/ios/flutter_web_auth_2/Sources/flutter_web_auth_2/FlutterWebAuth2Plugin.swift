@@ -12,6 +12,7 @@ public class FlutterWebAuth2Plugin: NSObject, FlutterPlugin {
     }
 
     var completionHandler: ((URL?, Error?) -> Void)?
+    var currentSession: Any?
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if call.method == "authenticate",
@@ -24,6 +25,7 @@ public class FlutterWebAuth2Plugin: NSObject, FlutterPlugin {
             var sessionToKeepAlive: Any? // if we do not keep the session alive, it will get closed immediately while showing the dialog
             completionHandler = { (url: URL?, err: Error?) in
                 self.completionHandler = nil
+                self.currentSession = nil
 
                 if (sessionToKeepAlive != nil) {
                     if #available(iOS 12, *) {
@@ -142,18 +144,72 @@ public class FlutterWebAuth2Plugin: NSObject, FlutterPlugin {
 
                 session.start()
                 sessionToKeepAlive = session
+                currentSession = session
             } else if #available(iOS 11, *) {
                 let session = SFAuthenticationSession(url: url, callbackURLScheme: callbackURLScheme, completionHandler: completionHandler!)
                 session.start()
                 sessionToKeepAlive = session
+                currentSession = session
             } else {
                 result(FlutterError(code: "FAILED", message: "This plugin does currently not support iOS lower than iOS 11", details: nil))
             }
+        } else if call.method == "cancel" {
+            if currentSession != nil {
+                if let handler = completionHandler {
+                    if #available(iOS 12, *) {
+                        handler(nil, ASWebAuthenticationSessionError(.canceledLogin))
+                    } else if #available(iOS 11, *) {
+                        handler(nil, SFAuthenticationError(.canceledLogin))
+                    }
+                    self.waitForDismiss {
+                        result(nil)
+                    }
+                    return
+                }
+            }
+            result(nil)
         } else if call.method == "cleanUpDanglingCalls" {
             // we do not keep track of old callbacks on iOS, so nothing to do here
             result(nil)
         } else {
             result(FlutterMethodNotImplemented)
+        }
+    }
+
+    private func waitForDismiss(timeout: TimeInterval = 2.0, startTime: Date? = nil, completion: @escaping () -> Void) {
+        let start = startTime ?? Date()
+        let elapsed = Date().timeIntervalSince(start)
+
+        // Check timeout
+        if elapsed >= timeout {
+            completion()
+            return
+        }
+
+        var rootViewController: UIViewController? = nil
+
+        if #available(iOS 13, *) {
+            rootViewController = UIApplication.shared.delegate?.window??.rootViewController
+            if rootViewController == nil {
+                rootViewController = UIApplication.shared.keyWindow?.rootViewController
+            }
+        } else {
+            rootViewController = UIApplication.shared.keyWindow?.rootViewController
+        }
+
+        guard let rootVC = rootViewController else {
+            completion()
+            return
+        }
+
+        if rootVC.presentedViewController != nil {
+            // Not dismissed yet, check again on next run loop
+            DispatchQueue.main.async { [weak self] in
+                self?.waitForDismiss(timeout: timeout, startTime: start, completion: completion)
+            }
+        } else {
+            // UI dismissed successfully
+            completion()
         }
     }
 
