@@ -80,19 +80,23 @@ class AuthenticationManagementActivity : ComponentActivity() {
 
         when (result.resultCode) {
             AuthTabIntent.RESULT_OK -> {
-                val resultUri = result.resultUri!!
-                try {
-                    val deepLinkIntent = Intent(Intent.ACTION_VIEW, resultUri)
-                    /// prevent case deeplink only
-                    startActivity(deepLinkIntent)
-                    /// hold old navigation behavior
-                    /// and make sure it sample with current deeplink navigation behaviour
-                    finishWithAnimation(authResultHandled = false)
-                    return
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Failed to launch main activity with auth result: ${e.message}")
+                val resultUri = result.resultUri
+                if (resultUri == null) {
+                    callback.error("FAILED", "Authentication returned no URI", null)
+                } else {
+                    try {
+                        val deepLinkIntent = Intent(Intent.ACTION_VIEW, resultUri)
+                        /// prevent case deeplink only
+                        startActivity(deepLinkIntent)
+                        /// hold old navigation behavior
+                        /// and make sure it sample with current deeplink navigation behaviour
+                        finishWithAnimation(authResultHandled = false)
+                        return
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "Failed to launch main activity with auth result: ${e.message}")
+                    }
+                    callback.success(resultUri.toString())
                 }
-                callback.success(result.resultUri!!.toString())
             }
             AuthTabIntent.RESULT_CANCELED -> {
                 callback.error("CANCELED", "User canceled authentication", null)
