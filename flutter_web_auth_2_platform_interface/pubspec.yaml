@@ -8,8 +8,8 @@ funding:
   - https://github.com/sponsors/ThexXTURBOXx
 
 environment:
-  sdk: ">=2.15.0 <4.0.0"
-  flutter: 3.19.6
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:

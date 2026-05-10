@@ -5,8 +5,9 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
+import androidx.browser.auth.AuthTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabColorSchemeParams
-// import androidx.browser.auth.AuthTabIntent
+import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 
@@ -23,9 +24,8 @@ interface IntentWrapper {
 
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrapper {
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { 
-        // setEphemeralBrowsingEnabled not available in androidx.browser:1.8.0
-        // b.setEphemeralBrowsingEnabled(enabled) 
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply {
+        b.setEphemeralBrowsingEnabled(enabled)
     }
 
     override fun build(activity: Activity): IntentWrapper {
@@ -56,13 +56,18 @@ class CtBuilderWrapper(private val b: CustomTabsIntent.Builder) : TabBuilderWrap
     }
 }
 
-/*
 @SuppressLint("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
 class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWrapper {
 
-    override fun setEphemeralBrowsingEnabled(enabled: Boolean) = apply { b.setEphemeralBrowsingEnabled(enabled) }
+    override fun setEphemeralBrowsingEnabled(enabled: Boolean) =
+        apply { b.setEphemeralBrowsingEnabled(enabled) }
 
     override fun build(activity: Activity): IntentWrapper {
+        val colorSchemeParams = AuthTabColorSchemeParams.Builder()
+            .setToolbarColor(ContextCompat.getColor(activity, R.color.toolbarColor))
+            .setNavigationBarColor(ContextCompat.getColor(activity, R.color.navigationBarColor))
+            .build()
+        b.setDefaultColorSchemeParams(colorSchemeParams)
         val intent = b.build()
         return object : IntentWrapper {
 
@@ -79,4 +84,3 @@ class AuthTabBuilderWrapper(private val b: AuthTabIntent.Builder) : TabBuilderWr
         }
     }
 }
-*/
