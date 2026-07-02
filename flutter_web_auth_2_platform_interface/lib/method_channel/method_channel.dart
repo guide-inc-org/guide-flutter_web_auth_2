@@ -21,4 +21,12 @@ class FlutterWebAuth2MethodChannel extends FlutterWebAuth2Platform {
   @override
   Future clearAllDanglingCalls() async =>
       _channel.invokeMethod('cleanUpDanglingCalls');
+
+  @override
+  Future<bool?> isCustomTabMinimized() =>
+      _channel.invokeMethod<bool>('isCustomTabMinimized').onError((_, __) => Future.value(null));
+
+  @override
+  Future<String?> consumePendingRedirect() =>
+      _channel.invokeMethod<String>('consumePendingRedirect').onError((_, __) => Future.value(null));
 }

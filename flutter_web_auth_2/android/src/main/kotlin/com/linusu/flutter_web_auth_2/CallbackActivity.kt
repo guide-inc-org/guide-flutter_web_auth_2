@@ -14,7 +14,16 @@ class CallbackActivity : Activity() {
         val scheme = url?.scheme
 
         if (scheme != null) {
-            FlutterWebAuth2Plugin.callbacks.remove(scheme)?.success(url.toString())
+            val cb = FlutterWebAuth2Plugin.callbacks.remove(scheme)
+            if (cb != null) {
+                cb.success(url.toString())
+            } else {
+                // Cold-start recovery: no live completer (the process was killed while the Custom
+                // Tab was open). Persist the redirect so the app can resume login on its next start.
+                FlutterWebAuth2Plugin.persistPendingRedirect(this, url.toString())
+            }
+            // The redirect arrived: the Custom Tab session (if any) is no longer needed.
+            FlutterWebAuth2Plugin.releaseCustomTabsSession(this)
         }
         startActivity(AuthenticationManagementActivity.createResponseHandlingIntent(this))
         finish()

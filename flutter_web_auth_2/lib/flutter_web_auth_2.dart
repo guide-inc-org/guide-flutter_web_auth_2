@@ -93,4 +93,8 @@ class FlutterWebAuth2 {
     await _platform.clearAllDanglingCalls();
     WidgetsBinding.instance.removeObserver(_resumedObserver);
   }
+
+  static Future<bool?> isCustomTabMinimized() => _platform.isCustomTabMinimized();
+
+  static Future<String?> consumePendingRedirect() => _platform.consumePendingRedirect();
 }
