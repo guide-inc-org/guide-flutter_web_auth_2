@@ -74,45 +74,17 @@ class AuthenticationManagementActivity : ComponentActivity() {
     }
 
     private fun handleAuthResult(result: AuthResult) {
-        val callback = FlutterWebAuth2Plugin.callbacks[callbackScheme]
-        if (callback == null) {
-            finishWithAnimation()
-            return
-        }
-
-        when (result.resultCode) {
-            AuthTabIntent.RESULT_OK -> {
-                val resultUri = result.resultUri
-                if (resultUri != null) {
-                    try {
-                        val deepLinkIntent = Intent(Intent.ACTION_VIEW, resultUri)
-                        startActivity(deepLinkIntent)
-                        finishWithAnimation(authResultHandled = false)
-                        return
-                    } catch (e: Exception) {
-                        Log.e(LOG_TAG, "Failed to launch main activity with auth result: ${e.message}")
-                    }
-                    callback.success(resultUri.toString())
-                } else {
-                    callback.error("FAILED", "Authentication returned no URI", null)
-                }
-            }
-
-            AuthTabIntent.RESULT_CANCELED -> {
-                callback.error("CANCELED", "User canceled authentication", null)
-            }
-
-            else -> {
-                callback.error(
-                    "FAILED",
-                    "Authentication failed with code: ${result.resultCode}",
-                    null
-                )
-            }
-        }
-
-        FlutterWebAuth2Plugin.removeCallback(callbackScheme)
-        finishWithAnimation()
+        // Shared completion logic (see Utils.completeAuthTabResult): re-dispatches a
+        // successful URI as an explicit-package deep link — even when the in-memory
+        // callback is gone because the process was killed while the AuthTab was
+        // foreground — and completes/clears the callback for the other outcomes.
+        val redispatched = completeAuthTabResult(
+            caller = this,
+            resultCode = result.resultCode,
+            resultUri = result.resultUri,
+            scheme = callbackScheme,
+        )
+        finishWithAnimation(authResultHandled = !redispatched)
     }
 
     override fun onResume() {
@@ -170,30 +142,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         finishWithAnimation()
     }
 
-    fun shouldUseAuthTabs(): Boolean {
-
-        if (!preferEphemeral || targetPackage == null) return true
-        val packageMajorVersion = getInstalledVersion(targetPackage!!)?.substringBefore(".")?.toIntOrNull() ?: 0
-        Log.d(LOG_TAG, "Chosen package: $targetPackage with version: $packageMajorVersion")
-
-        val chromePackages = setOf(
-            PackageNames.CHROME_STABLE,
-            PackageNames.CHROME_BETA,
-            PackageNames.CHROME_DEV,
-        )
-
-        if (chromePackages.contains(targetPackage)) {
-            return packageMajorVersion >= 141
-        } else if (targetPackage == PackageNames.MICROSOFT_EDGE) {
-            return packageMajorVersion >= 141
-        } else if (targetPackage == PackageNames.SAMSUNG_INTERNET) {
-            return packageMajorVersion >= 28
-        } else if (targetPackage == PackageNames.FIREFOX) {
-            return packageMajorVersion >= 143
-        }
-
-        return true
-    }
+    fun shouldUseAuthTabs(): Boolean = shouldUseAuthTab(preferEphemeral, targetPackage)
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
