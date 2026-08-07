@@ -24,6 +24,9 @@ class AuthenticationManagementActivity : ComponentActivity() {
         const val KEY_AUTH_CALLBACK_SCHEME: String = "authCallbackScheme"
         const val KEY_AUTH_CALLBACK_HOST: String = "authCallbackHost"
         const val KEY_AUTH_CALLBACK_PATH: String = "authCallbackPath"
+        // When true, force the CustomTabs path regardless of browser version. Used by the
+        // AuthTab->CustomTabs retry (see FlutterWebAuth2Plugin.retryWithCustomTab).
+        const val KEY_FORCE_CUSTOM_TAB: String = "authForceCustomTab"
 
         fun createResponseHandlingIntent(context: Context): Intent {
             val intent = Intent(context, AuthenticationManagementActivity::class.java)
@@ -40,6 +43,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
     private lateinit var callbackScheme: String
     private var callbackHost: String? = null
     private var callbackPath: String? = null
+    private var forceCustomTab: Boolean = false
 
     private lateinit var authLauncher: ActivityResultLauncher<Intent>
 
@@ -142,7 +146,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         finishWithAnimation()
     }
 
-    fun shouldUseAuthTabs(): Boolean = shouldUseAuthTab(preferEphemeral, targetPackage)
+    fun shouldUseAuthTabs(): Boolean = !forceCustomTab && shouldUseAuthTab(preferEphemeral, targetPackage)
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -154,6 +158,7 @@ class AuthenticationManagementActivity : ComponentActivity() {
         outState.putString(KEY_AUTH_CALLBACK_SCHEME, callbackScheme)
         outState.putString(KEY_AUTH_CALLBACK_HOST, callbackHost)
         outState.putString(KEY_AUTH_CALLBACK_PATH, callbackPath)
+        outState.putBoolean(KEY_FORCE_CUSTOM_TAB, forceCustomTab)
     }
 
     private fun extractState(state: Bundle?) {
@@ -174,5 +179,6 @@ class AuthenticationManagementActivity : ComponentActivity() {
         callbackScheme = state.getString(KEY_AUTH_CALLBACK_SCHEME)!!
         callbackHost = state.getString(KEY_AUTH_CALLBACK_HOST)
         callbackPath = state.getString(KEY_AUTH_CALLBACK_PATH)
+        forceCustomTab = state.getBoolean(KEY_FORCE_CUSTOM_TAB, false)
     }
 }
